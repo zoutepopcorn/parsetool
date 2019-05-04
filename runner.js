@@ -10,12 +10,20 @@ const watch = () => {
     run(PARSE_COMMAND)
     run(DASHBOARD_COMMAND)
     fs.watchFile(ENTRY_FILE, {interval: 250}, (curr, prev) => {
+        for(command of commands) {
+            if(command.name == PARSE_COMMAND) {
+                command.kill()
+                run(PARSE_COMMAND)
+                break;
+            }
+        }
         console.log(`${ENTRY_FILE} file change, RESTART`);
     });
 }
 const run = (COMMAND) => {
     console.log(COMMAND);
     const command = exec(COMMAND);
+    command.name = COMMAND
     commands.push(command)
     command.stdout.on('data', (data) => {
         console.log(data);
