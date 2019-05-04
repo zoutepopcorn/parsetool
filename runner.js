@@ -6,22 +6,44 @@ const PARSE_COMMAND = `parse-server --appId APPLICATION_ID --masterKey MASTER_KE
 const DASHBOARD_COMMAND = `parse-dashboard --appId APPLICATION_ID --masterKey MASTER_KEY --serverURL "http://localhost:1337/parse"`
 let commands = []
 
-const watch = () => {
-    run(PARSE_COMMAND)
-    run(DASHBOARD_COMMAND)
+const killAll = () => {
+    for (command of commands) {
+        command.kill('SIGINT')
+    }
+    commands = []
+};
+
+const watchFile = () => {
     fs.watchFile(ENTRY_FILE, {interval: 250}, (curr, prev) => {
-        for(command of commands) {
-            if(command.name == PARSE_COMMAND) {
-                command.kill()
-                run(PARSE_COMMAND)
-                break;
+        let i = 0;
+        for (command of commands) {
+            if (command.name == PARSE_COMMAND) {
+                killAll()
+                setTimeout(() => {
+                    console.log("     ==================== RESTART ====================     ")
+                    watch()
+                }, 500)
             }
+            i++
         }
         console.log(`${ENTRY_FILE} file change, RESTART`);
     });
+};
+
+const watch = () => {
+    console.log('=> watch() parse-server => ./main.js');
+    run(DASHBOARD_COMMAND)
+    setTimeout(() => {
+        run(PARSE_COMMAND)
+    }, 5000)
+    setTimeout(() => {
+        console.log("________________________________________________________")
+    }, 7000)
+    watchFile()
 }
+
+
 const run = (COMMAND) => {
-    console.log(COMMAND);
     const command = exec(COMMAND);
     command.name = COMMAND
     commands.push(command)
@@ -34,9 +56,7 @@ const run = (COMMAND) => {
 }
 
 process.on('beforeExit', () => {
-    for(command of commands) {
-        command.kill()
-    }
+    killAll()
 });
 
 watch()
